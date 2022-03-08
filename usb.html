@@ -1,0 +1,172 @@
+<html>
+
+<head>
+
+
+</head>
+
+<body>
+
+    <button id="listall">list all USB</button>
+
+    <button id="connect">Connect To WebUSB Device</button>
+
+
+    <button id="listhid">hid lsit</button>
+
+    <button id="hidconnect">hid connect</button>
+
+
+    <script>
+
+        function hidTest(device) {
+            for (let collection of device.collections) {
+                // An HID collection includes usage, usage page, reports, and subcollections.
+                console.log(`Usage: ${collection.usage}`);
+                console.log(`Usage page: ${collection.usagePage}`);
+
+                for (let inputReport of collection.inputReports) {
+                    console.log(`Input report: ${inputReport.reportId}`);
+                    // Loop through inputReport.items
+                }
+
+                for (let outputReport of collection.outputReports) {
+                    console.log(`Output report: ${outputReport.reportId}`);
+                    // Loop through outputReport.items
+                }
+
+                for (let featureReport of collection.featureReports) {
+                    console.log(`Feature report: ${featureReport.reportId}`);
+                    // Loop through featureReport.items
+                }
+            }
+        }
+
+        function hidconnect(device) {
+            console.log(`HID: ${device.productName} vid = ${device.vendorId} pid = ${device.productId}`);
+
+            device.oninputreport = ({ device, reportId, data }) => {
+                console.log(`Input report ${reportId} from ${device.productName}:`,
+                    new Uint8Array(data.buffer));
+            };
+
+            device.open().then(() => {
+                console.log('device opened.')
+                const activationTime = [
+                    0x00, 0xFD, 0xF8, 0xFD, 0xB7, 0x00, 0x1A, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x2A, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01,
+                    0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+                ];
+
+                device.sendReport(0x2A, new Uint8Array(activationTime)).then(() => {
+                    console.log('send report');
+                }).catch((err) => {
+                    console.log(err);
+                });
+                device.sendFeatureReport(0x01, new Uint8Array(activationTime)).then(() => {
+                    console.log('send feature report');
+                }).catch((err) => {
+                    console.log(err);
+                });
+
+            });
+        }
+
+
+        window.onload = _ => {
+            document.querySelector("#listall").onclick = function () {
+                navigator.usb.getDevices().then(devices => {
+                    console.log("Total devices: " + devices.length);
+                    devices.forEach(device => {
+                        console.log("Product name: " + device.productName +
+                            ", serial number " + device.serialNumber);
+                    });
+                });
+            }
+            document.querySelector("#connect").onclick = function () {
+
+                const filters = [
+                    { 'vendorId': 0x3318 },
+                ];
+                navigator.usb.requestDevice({ 'filters': filters }).then(
+                    device => {
+                        console.log("selected device = " + device);
+                        device.open().then(() => {
+
+                            // device.configurations.forEach(configuration => {
+                            //     console.log('configuration value = ' + configuration.configurationValue);
+
+
+                            //     configuration.interfaces.
+                            // });
+                            if (device.configuration === null) {
+                                console.log('select configuration 1');
+                                device.selectConfiguration(1);
+                            }
+
+                        }).then(() => {
+
+                            device.configuration.interfaces.forEach(interface => {
+                                console.log('interface number = ' + interface.interfaceNumber);
+                                interface.alternates.forEach(alternate => {
+                                    console.log('alternate = ' + alternate + ' class = ' + alternate.interfaceClass);
+
+                                });
+                            });
+
+
+                            console.log(device.claimInterface(4));
+
+                        }).then(() => {
+
+                        });
+                    }
+                );
+
+            }
+
+            document.querySelector('#listhid').onclick = function () {
+                navigator.hid.getDevices().then(
+                    devices => {
+                        console.log(`hid count = ${devices.length}`);
+                        devices.forEach(device => {
+                            console.log(`HID: ${device.productName}`);
+                        });
+                    }
+                );
+            };
+            document.querySelector('#hidconnect').onclick = function () {
+
+
+                const filters = [
+                    { 'vendorId': 0x3318 },
+                ];
+                navigator.hid.requestDevice({ 'filters': filters }).then(
+                    devices => {
+                        devices.forEach(device => {
+                            hidTest(device);
+                            hidconnect(device);
+                        });
+
+
+                    }
+                );
+
+            };
+            navigator.hid.addEventListener('connect', ({ device }) => {
+                console.log(`HID connected: ${device.productName}`);
+            });
+
+        };
+
+
+
+    </script>
+</body>
+
+</html>

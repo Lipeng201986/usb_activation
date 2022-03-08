@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>HID Explorer</title>
+    <script src="js/explorer.js"></script>
+
+</head>
+
+<body>
+    <h1>HID Explorer</h1>
+    <button onclick="connectDevice()">Connect</button>
+    <select id="deviceSelect" oninput="deviceSelectionChanged()"></select>
+    <br />
+    Input report<br />
+    <textarea id="inputReport" cols="100" rows="5" disabled></textarea><br />
+    Output report <button onclick="sendOutputReport()">Send</button><br />
+    <textarea id="outputReport" cols="100" rows="5"></textarea><br />
+    Feature report <button onclick="sendFeatureReport()">Send</button><button
+        onclick="receiveFeatureReport()">Receive</button><br />
+    <textarea id="featureReport" cols="100" rows="5"></textarea><br />
+    Device info<br />
+    <textarea id="deviceInfo" cols="100" rows="50" disabled></textarea><br />
+</body>
+
+</html>
