@@ -4,7 +4,7 @@ let deviceIndex = 0;
 
 
 // hid message id bit: 16
-// activation bit: 23-41
+// activation bit: 23-31
 
 
 const MSG_W_ACTIVATION = [0x00,
@@ -38,20 +38,38 @@ const hex8 = value => {
     return ('00' + value.toString(16)).substr(-2).toUpperCase();
 };
 
-const handleInputReport = report => {
-    console.log('report id: ' + report.reportId);
-    console.log('handleInputReport', report);
 
-    let buffer = '';
-    const reportData = new Uint8Array(report.data.buffer);
+const time2Bytes = time => {
+    console.log(time);
 
-    console.log('reportData.buffer[16]', reportData.buffer[16]);
-    if (reportData.buffer[16] == 0x29) {
-        console.log('report read activation' + reportData.subarray(23, 41));
+    let timeBytes = new Uint8Array(8);
+    for (let i = 0; i < 8; i++) {
+        timeBytes[i] = (time >> i) & 0xFF;
     }
-    for (let byte of reportData)
-        buffer += ' ' + hex8(byte);
-    console.log(buffer);
+    console.log(timeBytes);
+};
+
+const bytes2Time = bytes => {
+
+    let time = 0;
+    for (let i = 0; i < bytes.byteLength; i++) {
+        time += 
+    }
+};
+
+const handleInputReport = ({ device, reportId, data }) => {
+    console.log('handleInputReport', data);
+    const reportData = new Uint8Array(data.buffer);
+
+    console.log('reportData.buffer[16]', reportData[15]);
+    if (reportData[15] == 0x29) {
+
+        const time = bytes2Time(reportData.subarray(23, 31));
+        console.log('time', time);
+    }
+    // for (let byte of reportData)
+    //     buffer += ' ' + hex8(byte);
+    // console.log(buffer);
 
     // TODO handle input report
 
@@ -121,16 +139,6 @@ const removeDevice = device => {
         }
 
     }
-};
-
-const time2Bytes = time => {
-    console.log(time);
-
-    let timeBytes = new Uint8Array(8);
-    for (let i = 0; i < 8; i++) {
-        timeBytes[i] = (time >> i) & 0xFF;
-    }
-    console.log(timeBytes);
 };
 
 

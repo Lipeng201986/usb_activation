@@ -1,0 +1,23 @@
+{
+  "name": "usb_activation",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "express": "^4.17.1"
+  },
+  "scripts": {
+    "start": "sudo $(which node) index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Lipeng201986/usb_activation.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Lipeng201986/usb_activation/issues"
+  },
+  "homepage": "https://github.com/Lipeng201986/usb_activation#readme"
+}
