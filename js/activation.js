@@ -45,6 +45,7 @@ const handleInputReport = report => {
     let buffer = '';
     const reportData = new Uint8Array(report.data.buffer);
 
+    console.log('reportData.buffer[16]', reportData.buffer[16]);
     if (reportData.buffer[16] == 0x29) {
         console.log('report read activation' + reportData.subarray(23, 41));
     }
