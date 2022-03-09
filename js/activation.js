@@ -29,9 +29,22 @@ const MSG_R_ACTIVATION = [
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 ];
 
+const MSG_W_DEACTIVATION = [
+    0xFD, 0x9E, 0x7A, 0x5E, 0xAB, 0x11, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x19,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+];
+
 const hidFilters = [
     { 'vendorId': 0x3318 },
 ];
+
+let pendingAction = 0;
 
 // Formats an 8-bit integer |value| in hexadecimal with leading zeros.
 const hex8 = value => {
@@ -100,48 +113,66 @@ const connectDevices = async () => {
 
 
 
-const activate = (device) => {
 
-    let reportId = 0;
-    let reportData = new Uint8Array(MSG_W_ACTIVATION);
-    console.log('try activate glasses', bytes2String(reportData));
-    // activation        
-    device.sendReport(reportId, reportData).then(() => {
-        console.log('activation report sent');
-    }).catch((error) => {
-        console.log('activation report failed', error);
-    });
-
-};
-
-const checkActivation = async () => {
+const checkConnection = async () => {
 
     if (navigator.hid === undefined) {
         alert('hid api not supported');
-        return;
+        return -1;
     }
 
-    let permised = await connectDevices();
-    if (!permised) {
+    let premised = await connectDevices();
+    if (!premised) {
         alert('no glasses connected');
-        return;
+        return -2;
     }
-    let reportId = 0;
-    let reportData = new Uint8Array(MSG_R_ACTIVATION);
-    for (let [id, device] of deviceMap.entries()) {
-        // try open the device 
-        if (!device.opened) {
-            await device.open();
+    return 1;
+
+}
+
+const tryToActive = () => {
+    checkConnection().then(result => {
+        if (result == 1) {
+            for (let [id, device] of deviceMap.entries()) {
+                // read activation time        
+                sendReport(device, MSG_R_ACTIVATION);
+            }
         }
-        // read activation time        
-        device.sendReport(reportId, reportData).then(() => {
-            console.log('activation report sent');
-        }).catch((error) => {
-            console.log('activation report failed', error);
-        });
-    }
+    });
 };
 
+const deactivate = () => {
+    checkConnection().then(result => {
+        if (result == 1) {
+            for (let [id, device] of deviceMap.entries()) {
+                // deactivation        
+                sendReport(device, MSG_W_DEACTIVATION).then(() => {
+                    alert('deactivation susses')
+                });
+            }
+        }
+    });
+}
+
+const activate = (device) => {
+    sendReport(device, MSG_W_ACTIVATION);
+};
+
+const sendReport = async (device, buffer) => {
+    console.log('sendReport', buffer);
+    // try open the device 
+    if (!device.opened) {
+        await device.open();
+    }
+    let reportData = new Uint8Array(buffer);
+    device.sendReport(0x00, reportData).then(() => {
+        console.log('sent message to device.');
+        return true;
+    }).catch((error) => {
+        console.log('sent message failed', error);
+        return false;
+    });
+}
 
 const addDevice = device => {
     for (let d of deviceMap.values()) {
@@ -155,8 +186,8 @@ const addDevice = device => {
         console.log('device is not Nreal\'s.');
         return;
     }
-
     device.oninputreport = handleInputReport;
+
     deviceMap.set(deviceIndex, device);
     deviceIndex += 1;
     console.log('device added = ' + device.productName + ' ' + deviceIndex);
@@ -175,22 +206,34 @@ const removeDevice = device => {
 };
 
 
+const hidSupported = () => {
+    return !(navigator.hid === undefined);
+}
+
+const showDialog = (title, message) => {
+
+}
+
 window.onload = () => {
-    const time = Date.now();
+    if (!hidSupported()) {
 
-    time2Bytes(time);
+        alert('hid api not supported');
 
-    navigator.hid.getDevices().then(devices => {
-        for (let device of devices) {
-            addDevice(device);
-        }
-    });
-    navigator.hid.onconnect = e => {
-        // add device to connected device list.
-        addDevice(e.device);
-    };
+    } else {
+        navigator.hid.getDevices().then(devices => {
+            for (let device of devices) {
+                addDevice(device);
+            }
+            navigator.hid.onconnect = e => {
+                // add device to connected device list.
+                addDevice(e.device);
+            };
 
-    navigator.hid.ondisconnect = e => {
-        removeDevice(e.device);
-    };
+            navigator.hid.ondisconnect = e => {
+                removeDevice(e.device);
+            };
+        });
+    }
+
+
 };
