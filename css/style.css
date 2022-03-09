@@ -707,6 +707,48 @@ input[type=submit]:hover {
 	color: white;
 }
 
+.messageBg {
+	position: fixed;
+	width: 100%;
+	height: 100%;
+	top: 0;
+	left: 0;
+	background-color: rgba(0, 0, 0, 0.6);
+	z-index: 999;
+	-webkit-backdrop-filter: blur(10px);
+	backdrop-filter: blur(10px);
+}
+
+.messageBg .messageWindow {
+	position: absolute;
+	width: calc(100% - 20px);
+	max-width: 440px;
+	height: calc(100% - 40px);
+	max-height: 260px;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	background-color: white;
+	text-align: center;
+}
+
+.messageBg .messageWindow .title {
+	width: calc(100% - 40px);
+	height: 50px;
+	line-height: 50px;
+	margin: 20px auto;
+	font-size: 20px;
+	font-weight: bold;
+}
+
+.messageBg .messageWindow .text {
+	width: calc(100% - 40px);
+	height: 50px;
+	margin: 0 auto;
+	margin-bottom: 20px;
+/* 	background-color: aqua; */
+}
+
 @media screen and (max-aspect-ratio: 1920/1080) {
 /*
 	.fullSizeContainer video {
