@@ -64,6 +64,8 @@ const debugBuffer = buffer => {
     return bufferString;
 }
 
+
+
 const handleInputReport = ({ device, reportId, data }) => {
     console.log('handleInputReport', data);
     const reportData = new Uint8Array(data.buffer);
@@ -122,6 +124,12 @@ const activate = (device) => {
 };
 
 const checkActivation = async () => {
+
+    if (navigator.hid === undefined) {
+        alert('hid api not supported');
+        return;
+    }
+
     let permised = await connectDevices();
     if (!permised) {
         alert('no glasses connected');
