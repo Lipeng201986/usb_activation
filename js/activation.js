@@ -98,6 +98,8 @@ const handleInputReport = ({ device, reportId, data }) => {
 
     } else if (msgId == 0x2A) {
         alert('activated');
+    } else if (msgId == 0x19) {
+        alert('deactivated');
     }
 };
 const connectDevices = async () => {
@@ -146,9 +148,7 @@ const deactivate = () => {
         if (result == 1) {
             for (let [id, device] of deviceMap.entries()) {
                 // deactivation        
-                sendReport(device, MSG_W_DEACTIVATION).then(() => {
-                    alert('deactivation susses')
-                });
+                sendReport(device, MSG_W_DEACTIVATION);
             }
         }
     });
@@ -165,7 +165,7 @@ const sendReport = async (device, buffer) => {
         await device.open();
     }
     let reportData = new Uint8Array(buffer);
-    device.sendReport(0x00, reportData).then(() => {
+    return device.sendReport(0x00, reportData).then(() => {
         console.log('sent message to device.');
         return true;
     }).catch((error) => {
