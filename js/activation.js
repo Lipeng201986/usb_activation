@@ -52,8 +52,8 @@ const time2Bytes = time => {
 const bytes2Time = bytes => {
 
     let time = 0;
-    for (let i = 0; i < bytes.byteLength; i++) {
-        time += 
+    for (let i = bytes.byteLength - 1; i >= 0; i--) {
+        time += bytes[i]
     }
 };
 
@@ -77,9 +77,15 @@ const handleInputReport = ({ device, reportId, data }) => {
 };
 const connectDevices = async () => {
     let devices = await navigator.hid.requestDevice({ filters: hidFilters });
+    if (devices.length > 0) {
+        return false;
+    }
+
     for (let device of devices) {
         addDevice(device);
     }
+
+    return true;
 };
 
 
@@ -90,7 +96,12 @@ const readActivation = (device) => {
 };
 
 const activateGlasses = async () => {
-    await connectDevices();
+    let premised = await connectDevices();
+
+    if (!premised) {
+        // TODO handle deny
+        return;
+    }
 
     console.log('try activate glasses');
     let reportId = 0;
