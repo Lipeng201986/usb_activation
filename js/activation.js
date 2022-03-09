@@ -8,10 +8,10 @@ let deviceIndex = 0;
 
 
 const MSG_W_ACTIVATION = [
-    0xFD, 0xF8, 0xFD, 0xB7, 0x00, 0x1A, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2A,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, // time bit 22th
-    0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x00,
+    0xFD, 0xD8, 0x1C, 0x15, 0x05, 0x19, 0x00, 0x62,
+    0x80, 0xE0, 0xB6, 0xB3, 0x1E, 0x00, 0x00, 0x2A,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x01,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -53,11 +53,12 @@ const bytes2Time = bytes => {
 
     let time = 0;
     for (let i = bytes.byteLength - 1; i >= 0; i--) {
-        time += bytes[i]
+        time += bytes[i] << (i * 8);
     }
+    return time;
 };
 
-const debugBuffer = buffer => {
+const bytes2String = buffer => {
     let bufferString = '';
     for (let byte of buffer)
         bufferString += ' ' + hex8(byte);
@@ -71,10 +72,10 @@ const handleInputReport = ({ device, reportId, data }) => {
     const reportData = new Uint8Array(data.buffer);
 
     let msgId = reportData[15];
-    console.log('reportData.buffer[16]', msgId);
+    console.log('reportData.buffer[15]', msgId);
     if (msgId == 0x29) {
-        const time = bytes2Time(reportData.subarray(22, 30));
-        if (time < 1) {
+        const time = bytes2Time(reportData.subarray(23, 31));
+        if (time === undefined || time < 1) {
             console.log('to activate');
             activate(device);
 
@@ -85,13 +86,6 @@ const handleInputReport = ({ device, reportId, data }) => {
     } else if (msgId == 0x2A) {
         alert('activated');
     }
-    // for (let byte of reportData)
-    //     buffer += ' ' + hex8(byte);
-    // console.log(buffer);
-
-    // TODO handle input report
-
-    // if(report.reportId )
 };
 const connectDevices = async () => {
     let devices = await navigator.hid.requestDevice({ filters: hidFilters });
@@ -110,10 +104,7 @@ const activate = (device) => {
 
     let reportId = 0;
     let reportData = new Uint8Array(MSG_W_ACTIVATION);
-
-    reportData.set(time2Bytes(Date.now()), 22);
-
-    console.log('try activate glasses', debugBuffer(reportData));
+    console.log('try activate glasses', bytes2String(reportData));
     // activation        
     device.sendReport(reportId, reportData).then(() => {
         console.log('activation report sent');
