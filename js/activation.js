@@ -80,7 +80,7 @@ const handleInputReport = ({ device, reportId, data }) => {
             activate(device);
 
         } else {
-            alert('already activated');
+            alert('already activated at ' + time);
         }
 
     } else if (msgId == 0x2A) {
