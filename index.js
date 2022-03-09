@@ -12,5 +12,5 @@ https.createServer({
     key: fs.readFileSync('cert/localhost-key.pem'),
     cert: fs.readFileSync('cert/localhost.pem'),
 }, app)
-    .listen(443)
-console.log('Server running on https://localhost:443');
+    .listen(3000)
+console.log('Server running on https://localhost:3000');
