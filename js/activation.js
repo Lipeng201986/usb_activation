@@ -40,6 +40,15 @@ const MSG_W_DEACTIVATION = [
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 ];
 
+const messages = {
+    'title': 'System Info',
+    'notSupport': 'Please visit through chrome or edge browser',
+    'notConnect': 'No glasses connected',
+    'activated': 'Activate successfully',
+    'deactivated': 'Deactivate successfully',
+    'alreadyActivated': 'Already activated',
+};
+
 const hidFilters = [
     { 'vendorId': 0x3318 },
 ];
@@ -91,15 +100,14 @@ const handleInputReport = ({ device, reportId, data }) => {
         if (time === undefined || time < 1) {
             console.log('to activate');
             activate(device);
-
         } else {
-            alert('already activated at ' + time);
+            showDialog(messages.title, messages.alreadyActivated);
         }
 
     } else if (msgId == 0x2A) {
-        alert('activated');
+        showDialog(messages.title, messages.activated);
     } else if (msgId == 0x19) {
-        alert('deactivated');
+        showDialog(messages.title, messages.deactivated);
     }
 };
 const connectDevices = async () => {
@@ -119,13 +127,13 @@ const connectDevices = async () => {
 const checkConnection = async () => {
 
     if (navigator.hid === undefined) {
-        alert('hid api not supported');
+        showDialog(messages.title, messages.notSupport);
         return -1;
     }
 
     let premised = await connectDevices();
     if (!premised) {
-        alert('no glasses connected');
+        showDialog(messages.title, messages.notConnect);
         return -2;
     }
     return 1;
@@ -212,12 +220,21 @@ const hidSupported = () => {
 
 const showDialog = (title, message) => {
 
+    let divMessage = document.getElementById('ID_messageMask');
+
+    if (divMessage == null) {
+        alert(message);
+    } else {
+        divMessage.style.display = 'block';
+        document.getElementById('ID_messageTitle').innerHTML = title;
+        document.getElementById('ID_messageText').innerHTML = message;
+    }
 }
+
 
 window.onload = () => {
     if (!hidSupported()) {
-
-        alert('hid api not supported');
+        showDialog(messages.title, messages.notSupport);
 
     } else {
         navigator.hid.getDevices().then(devices => {
@@ -233,6 +250,24 @@ window.onload = () => {
                 removeDevice(e.device);
             };
         });
+
+
+        // add click events
+        let btnConnect = document.getElementById('ID_connect');
+        if (btnConnect != null) {
+            btnConnect.onclick = () => {
+                tryToActive();
+            };
+        }
+
+
+
+        let btnMessage = document.getElementById('ID_messageButton');
+        if (btnMessage != null) {
+            btnMessage.onclick = () => {
+                document.getElementById('ID_messageMask').style.display = 'none';
+            }
+        }
     }
 
 
