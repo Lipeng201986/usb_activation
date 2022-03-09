@@ -1,0 +1,29 @@
+.fullSizeContainer {
+	position: relative;
+	width: 100%;
+	height: 100vh;
+	margin-top: 0;
+	z-index: 900;
+	color: black;
+	font-size: 16px;
+	line-height: 26px;
+}
+
+.fullSizeContainer .centered {
+	width: calc(100% - 40px);
+	max-width: 1000px;
+	margin: 0 auto;
+}
+
+.fullSizeContainer .centered .title {
+	text-align: center;
+	font-weight: bold;
+	font-size: 24px;
+	line-height: 40px;
+}
+
+.fullSizeContainer .centered .title_H2 {
+	font-weight: bold;
+	font-size: 18px;
+	line-height: 32px;
+}
