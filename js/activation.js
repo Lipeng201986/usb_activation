@@ -41,12 +41,12 @@ const MSG_W_DEACTIVATION = [
 ];
 
 const messages = {
-    'title': 'System Info',
-    'notSupport': 'Please visit through chrome or edge browser',
-    'notConnect': 'No glasses connected',
-    'activated': 'Activate successfully',
-    'deactivated': 'Deactivate successfully',
-    'alreadyActivated': 'Already activated',
+    'title': 'システム情報',
+    'notSupport': 'Google Chrome または Microsoft Edge をご使用ください',
+    'notConnect': '端末が接続されていません',
+    'activated': 'アクティベーションが完了しました',
+    'deactivated': 'アクティベーションが完了していません',
+    'alreadyActivated': 'アクティベーションが完了しました',
 };
 
 const hidFilters = [
