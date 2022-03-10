@@ -234,16 +234,6 @@ const showDialog = (title, message) => {
 
 window.onload = () => {
 
-    // add click events
-    let btnConnect = document.getElementById('ID_connect');
-    if (btnConnect != null) {
-        btnConnect.onclick = () => {
-            tryToActive();
-        };
-    }
-
-
-
     let btnMessage = document.getElementById('ID_messageButton');
     if (btnMessage != null) {
         btnMessage.onclick = () => {
@@ -267,6 +257,13 @@ window.onload = () => {
                 removeDevice(e.device);
             };
         });
+        // add click events
+        let btnConnect = document.getElementById('ID_connect');
+        if (btnConnect != null) {
+            btnConnect.onclick = () => {
+                tryToActive();
+            };
+        }
 
 
     }
