@@ -233,6 +233,23 @@ const showDialog = (title, message) => {
 
 
 window.onload = () => {
+
+    // add click events
+    let btnConnect = document.getElementById('ID_connect');
+    if (btnConnect != null) {
+        btnConnect.onclick = () => {
+            tryToActive();
+        };
+    }
+
+
+
+    let btnMessage = document.getElementById('ID_messageButton');
+    if (btnMessage != null) {
+        btnMessage.onclick = () => {
+            document.getElementById('ID_messageMask').style.display = 'none';
+        }
+    }
     if (!hidSupported()) {
         showDialog(messages.title, messages.notSupport);
 
@@ -252,22 +269,6 @@ window.onload = () => {
         });
 
 
-        // add click events
-        let btnConnect = document.getElementById('ID_connect');
-        if (btnConnect != null) {
-            btnConnect.onclick = () => {
-                tryToActive();
-            };
-        }
-
-
-
-        let btnMessage = document.getElementById('ID_messageButton');
-        if (btnMessage != null) {
-            btnMessage.onclick = () => {
-                document.getElementById('ID_messageMask').style.display = 'none';
-            }
-        }
     }
 
 
