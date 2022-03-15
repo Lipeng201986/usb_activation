@@ -101,10 +101,17 @@ const handleInputReport = ({ device, reportId, data }) => {
             console.log('to activate');
             activate(device);
         } else {
-            showDialog(messages.title, messages.alreadyActivated + ":" + time);
+            showDialog(messages.title, messages.alreadyActivated);
         }
 
     } else if (msgId == 0x2A) {
+        // activate success
+
+        let btnSuccess = document.getElementById('ID_Acti_Success');
+        if (btnSuccess != null) {
+            btnSuccess.click();
+            console.log("btnSuccess clicked.");
+        }
         showDialog(messages.title, messages.activated);
     } else if (msgId == 0x19) {
         showDialog(messages.title, messages.deactivated);
