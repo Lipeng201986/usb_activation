@@ -101,7 +101,7 @@ const handleInputReport = ({ device, reportId, data }) => {
             console.log('to activate');
             activate(device);
         } else {
-            showDialog(messages.title, messages.alreadyActivated);
+            showDialog(messages.title, messages.alreadyActivated + ":" + time);
         }
 
     } else if (msgId == 0x2A) {
