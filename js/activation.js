@@ -1,47 +1,10 @@
-import { send } from "express/lib/response";
-
 
 
 let deviceMap = new Map();
 let deviceIndex = 0;
+let otaPending = false;
+let binFile = null;
 
-
-// hid message id bit: 15
-// activation bit: 22-30
-
-
-const MSG_W_ACTIVATION = [
-    0xFD, 0xD8, 0x1C, 0x15, 0x05, 0x19, 0x00, 0x62,
-    0x80, 0xE0, 0xB6, 0xB3, 0x1E, 0x00, 0x00, 0x2A,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x01,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-];
-
-const MSG_R_ACTIVATION = [
-    0xFD, 0xCC, 0xDF, 0x3D, 0x03, 0x11, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x29,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
-];
-
-const MSG_W_DEACTIVATION = [
-    0xFD, 0x9E, 0x7A, 0x5E, 0xAB, 0x11, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x19,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-];
 
 const messages = {
     'title': 'システム情報',
@@ -59,12 +22,12 @@ const hidFilters = [
 let pendingAction = 0;
 
 // Formats an 8-bit integer |value| in hexadecimal with leading zeros.
-const hex8 = value => {
+function hex8(value) {
     return ('00' + value.toString(16)).substr(-2).toUpperCase();
 };
 
 
-const time2Bytes = time => {
+function time2Bytes(time) {
     let timeBytes = new Uint8Array(8);
     for (let i = 0; i < 8; i++) {
 
@@ -76,7 +39,7 @@ const time2Bytes = time => {
 
 
 // FIXME: not correct
-const bytes2Time = bytes => {
+function bytes2Time(bytes) {
 
     let time = 0;
     for (let i = bytes.byteLength - 1; i >= 0; i--) {
@@ -85,7 +48,7 @@ const bytes2Time = bytes => {
     return time;
 };
 
-const bytes2String = buffer => {
+function bytes2String(buffer) {
     let bufferString = '';
     for (let byte of buffer)
         bufferString += ' ' + hex8(byte);
@@ -103,7 +66,7 @@ function bin2String(array) {
 
 
 
-const handleInputReport = ({ device, reportId, data }) => {
+function handleInputReport({ device, reportId, data }) {
     const reportData = new Uint8Array(data.buffer);
 
     var result = parse_rsp(reportData);
@@ -140,21 +103,45 @@ const handleInputReport = ({ device, reportId, data }) => {
     } else if (result.msgId == MESSAGES.R_MCU_APP_FW_VERSION) {
         const version = String.fromCharCode.apply(null, result.payload);
         console.log('MCU APP FW version: %s', version);
-
-        sendReport(device, cmd_build(MESSAGES.W_UPDATE_MCU_APP_FW_PREPARE)).then(() => {
-            console.log('update MCU app fw prepare');
-            // jump to boot
-            sendReport(device, cmd_build(MESSAGES.W_MCU_APP_JUMP_TO_BOOT)).then(() => {
-                navigator.hid.get
+        if (otaPending) {
+            sendReport(device, cmd_build(MESSAGES.W_UPDATE_MCU_APP_FW_PREPARE)).then(() => {
+                console.log('update MCU app fw prepare');
             });
+        }
+    } else if (result.msgId == MESSAGES.W_UPDATE_MCU_APP_FW_PREPARE) {
 
+        // jump to boot
+        sendReport(device, cmd_build(MESSAGES.W_MCU_APP_JUMP_TO_BOOT)).then(() => {
+            console.log('jump to boot');
         });
     } else if (result.msgId == MESSAGES.W_MCU_APP_JUMP_TO_BOOT) {
 
-        sendReport(device, cmd_build(MESSAGES.W_BOOT_UPDATE_MODE));
+        waitBootDevice();
     }
 };
-const connectDevices = async () => {
+
+
+function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+async function waitBootDevice() {
+
+    navigator.hid.requestDevice({ filters: hidFilters });
+    // for (let i = 0; i < 20; i++) {
+
+    //     console.log("waitBootDevice: %d", i);
+    //     await sleep(1000);
+    //     navigator.hid.getDevices().then(devices => {
+    //         console.log("waitBootDevice:", devices);
+    //     });
+    //     navigator.usb.getDevices().then(devices => {
+    //         console.log("waitBootDevice usb:", devices);
+    //     });
+    // }
+}
+
+async function connectDevices() {
 
     // all air devices are connected
     if (deviceMap.size == 3) {
@@ -174,7 +161,7 @@ const connectDevices = async () => {
 
 
 
-const checkConnection = async () => {
+async function checkConnection() {
 
     if (navigator.hid === undefined) {
         showDialog(messages.title, messages.notSupport);
@@ -190,34 +177,34 @@ const checkConnection = async () => {
 
 }
 
-const tryToActive = () => {
+function tryToActive() {
     checkConnection().then(result => {
         if (result == 1) {
             for (let [id, device] of deviceMap.entries()) {
                 // read activation time        
-                sendReport(device, MSG_R_ACTIVATION);
+                sendReport(device, cmd_build(MESSAGES.R_ACTIVATION_TIME));
             }
         }
     });
 };
 
-const deactivate = () => {
+function deactivate() {
     checkConnection().then(result => {
         if (result == 1) {
             for (let [id, device] of deviceMap.entries()) {
                 // deactivation        
-                sendReport(device, MSG_W_DEACTIVATION);
+                sendReport(device, cmd_build(MESSAGES.W_CANCEL_ACTIVATION));
             }
         }
     });
 }
 
-const activate = (device) => {
+function activate(device) {
     var time = new Uint8Array([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x01]);
     sendReport(device, cmd_build(MESSAGES.W_ACTIVATION_TIME, time));
 };
 
-const sendReport = async (device, buffer) => {
+async function sendReport(device, buffer) {
     // try open the device 
     if (!device.opened) {
         await device.open();
@@ -232,8 +219,7 @@ const sendReport = async (device, buffer) => {
     });
 }
 
-const addDevice = device => {
-
+function addDevice(device) {
     for (let d of deviceMap.values()) {
         if (d === device) {
             console.log('device already in connected device list.');
@@ -249,21 +235,20 @@ const addDevice = device => {
 
     if (device.productId == 0x0424) {
 
-        device.oninputreport = handleInputReport;
-
         deviceMap.set(deviceIndex, device);
         deviceIndex += 1;
         console.log('device added = ', device.productName, deviceIndex, device);
+        device.oninputreport = handleInputReport;
     } else if (device.productId == 0x0423) {
         // boot device
         sendFw(device);
 
     }
 
+
 };
 
-
-const removeDevice = device => {
+function removeDevice(device) {
     for (let id in deviceMap.keys()) {
         if (deviceMap.get(id) === device) {
             deviceMap.delete(id);
@@ -274,15 +259,12 @@ const removeDevice = device => {
     }
 };
 
-
-const hidSupported = () => {
+function hidSupported() {
     return !(navigator.hid === undefined);
 }
 
-const showDialog = (title, message) => {
-
+function showDialog(title, message) {
     let divMessage = document.getElementById('ID_messageMask');
-
     if (divMessage == null) {
         alert(message);
     } else {
@@ -293,42 +275,34 @@ const showDialog = (title, message) => {
 }
 
 
-const upgrade = async () => {
 
-    // switch to boot mode
-
-    // checkConnection().then(result => {
-    //     if (result == 1) {
-    //         for (let [id, device] of deviceMap.entries()) {
-    //             // read activation time        
-    //             sendReport(device, MSG_R_ACTIVATION);
-    //         }
-    //     }
-    // });
+async function upgrade() {
+    // select firmware file
+    await selectFile();
+    if (binFile == null) {
+        console.log('no bin file selected.');
+        return;
+    }
+    otaPending = true;
 
     connectDevices().then(result => {
         if (result == 1) {
             // FIXME: how to find out the correct device
 
             for (let [id, device] of deviceMap.entries()) {
+
                 sendReport(device, cmd_build(MESSAGES.R_MCU_APP_FW_VERSION)).then(result => {
                     console.log('result', result, device);
                 });
+
             }
         }
     });
+
 }
 
 
-
-const test = () => {
-    var fwData = await readFwFile();
-    var data = new Uint8Array(fwData);
-    console.log(bytes2String(data));
-}
-
-
-const readFwFile = async () => {
+async function selectFile() {
     const pickerOpts = {
         types: [
             {
@@ -342,22 +316,59 @@ const readFwFile = async () => {
         multiple: false
     };
 
+    var filePaths = await window.showOpenFilePicker(pickerOpts);
+    if (filePaths.length > 0) {
 
-    return window.showOpenFilePicker(pickerOpts).then(filePaths => {
-        console.log('filePaths', filePaths);
-        if (filePaths.length == 0) {
-            return;
+        binFile = await filePaths[0].getFile();
+        // add file info to ui
+        var binEle = document.getElementById('binfile');
+        if (binEle != null) {
+            binEle.innerText = 'bin file: ' + binFile.name;
         }
+        return binFile;
+    }
 
-        return filePaths[0].getFile().then(file => {
-            return file.arrayBuffer();
-        })
+    return null;
 
+
+}
+
+function forgetAll() {
+    // for (let [id, device] of deviceMap.entries()) {
+    //     console('forget device', device);
+    //     device.forget();
+    // }
+
+}
+
+
+async function test() {
+    connectDevices().then(result => {
+        if (result == 1) {
+            // FIXME: how to find out the correct device
+
+            for (let [id, device] of deviceMap.entries()) {
+
+                sendReport(device, cmd_build(MESSAGES.R_MCU_APP_FW_VERSION)).then(result => {
+                    console.log('result', result, device);
+                });
+
+            }
+        }
     });
+
 }
 
 async function sendFw(device) {
-    var fwData = await readFwFile();
+    if (binFile == null) {
+        selectFile();
+    }
+
+    if (binFile == null) {
+        return;
+    }
+
+    var fwData = await binFile.arrayBuffer();
 
     var data = new Uint8Array(fwData);
     var ofs = 0;
@@ -387,9 +398,8 @@ async function sendFw(device) {
     await sendReport(device, cmd_build(MESSAGES.W_BOOT_JUMP_TO_APP));
     console.log("send fw app mode finish");
 
+    otaPending = false;
 }
-
-
 
 window.onload = () => {
 
@@ -401,42 +411,37 @@ window.onload = () => {
     }
     if (!hidSupported()) {
         showDialog(messages.title, messages.notSupport);
-
-    } else {
-        navigator.hid.getDevices().then(devices => {
-            for (let device of devices) {
-                addDevice(device);
-            }
-            navigator.hid.onconnect = e => {
-                console.log('hid connect ', e.device.productId);
-                // add device to connected device list.
-                addDevice(e.device);
-            };
-
-            navigator.hid.ondisconnect = e => {
-                console.log('hid disconnect ', e.device.productId);
-                removeDevice(e.device);
-            };
-        });
-        // add click events
-        let btnConnect = document.getElementById('ID_connect');
-        if (btnConnect != null) {
-            btnConnect.onclick = () => {
-                tryToActive();
-            };
-        }
+        return;
 
     }
 
+    navigator.hid.onconnect = e => {
+        // add device to connected device list.
+        addDevice(e.device);
+    };
+
+    navigator.hid.ondisconnect = e => {
+        removeDevice(e.device);
+
+    };
+
+
+    navigator.hid.getDevices().then(devices => {
+        for (let device of devices) {
+            addDevice(device);
+        }
+    });
+    // add click events
+    let btnConnect = document.getElementById('ID_connect');
+    if (btnConnect != null) {
+        btnConnect.onclick = () => {
+            tryToActive();
+        };
+    }
+
+
+
 }
-
-
-const readFw = () => {
-
-
-
-}
-
 
 const HEAD = 0xfd;
 const MSG_ID_OFS = 15;
@@ -470,7 +475,6 @@ const MESSAGES = {
 };
 
 
-const MSG_R_ACTIVATION_TIME = 0x29;
 
 const crc32_table = [
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
@@ -564,7 +568,6 @@ function cmd_build(msgId, payload) {
     var len = /*LEN*/2 + /*TS*/8 + /*MSG_ID*/2 + /*RESERVED*/5;
 
     if (payload != null && payload.length > 0) {
-        console.log("payload len: " + payload.length);
         buff.set(payload, PAYLOAD_OFS);
         len += payload.length;
     }
