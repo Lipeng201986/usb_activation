@@ -1,4 +1,4 @@
-import { MESSAGES, cmd_build, parse_rsp } from './protocol.js';
+import * as Protocol from './protocol.js';
 
 export default class Glasses extends EventTarget {
     constructor(device) {
@@ -21,18 +21,17 @@ export default class Glasses extends EventTarget {
     }
     _handleInputReport({ device, reportId, data }) {
         const reportData = new Uint8Array(data.buffer);
-        let report = parse_rsp(reportData);
-
+        let report = Protocol.parse_rsp(reportData);
         this._reports.set(report.msgId, report);
     }
 
     sendReport(msgId, payload) {
         const data = new Uint8Array(payload);
-        const cmd = cmd_build(msgId, payload);
+        const cmd = Protocol.cmd_build(msgId, payload);
         this._device.sendReport(0x00, cmd);
     }
 
-    async sendReportTimeout(msgId, payload, timeout) {
+    async sendReportTimeout(msgId, payload = [], timeout = 200) {
         this.sendReport(msgId, payload);
         const time = new Date().getTime();
         while ((new Date().getTime() - time) < timeout) {
@@ -46,12 +45,8 @@ export default class Glasses extends EventTarget {
         return null;
     }
 
-
-
     async isMcu() {
-        return this.sendReportTimeout(MESSAGES.R_ACTIVATION_TIME, [], 1000)
-            .then((report) => {
-                return report != null;
-            });
+        const report = await this.sendReportTimeout(Protocol.MESSAGES.R_ACTIVATION_TIME, [], 1000);
+        return report != null;
     }
 }

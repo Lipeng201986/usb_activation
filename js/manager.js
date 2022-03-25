@@ -12,12 +12,14 @@ function hidSupported() {
 function addHidListener() {
     navigator.hid.onconnect = function (event) {
         let device = event.device;
-        canCommand(device).then(result => {
-            if (result) {
-                glasses = new Glasses(device);
-                if (DEBUG) console.log('glasses connected', glasses);
-            }
-        });
+        if (isNrealDevice(device)) {
+            canCommand(device).then(result => {
+                if (result) {
+                    glasses = new Glasses(device);
+                    if (DEBUG) console.log('glasses connected', glasses);
+                }
+            });
+        }
     }
 
     navigator.hid.ondisconnect = function (event) {
@@ -26,21 +28,11 @@ function addHidListener() {
             if (DEBUG) console.log('glasses disconnected', glasses);
             glasses = null;
         }
-
-        // console.log('disconnect', event.device);
-        // let device = event.device;
-        // console.log('remove before', devices.length);
-        // let index = devices.indexOf(device);
-        // console.log('index', index);
-        // if (index > -1) {
-
-        //     devices.splice(index, 1);
-        //     console.log('remove after', devices.length);
-        // }
-
     }
 
 }
+
+
 
 function canCommand(device) {
     if (device) {
@@ -56,7 +48,7 @@ function canCommand(device) {
 function checkConnection() {
     return navigator.hid.getDevices().then(devices => {
         // filters out devices that are nreal devices.
-        return devices.filter(device => device.vendorId === 0x3318);
+        return devices.filter(isNrealDevice);
     }).then(async devices => {
         for (let device of devices) {
             if (await canCommand(device)) {
@@ -66,6 +58,11 @@ function checkConnection() {
             }
         }
     });
+}
+
+
+function isNrealDevice(device) {
+    return device.vendorId === Protocol.NREAL_VENDOR_ID;
 }
 
 function getGlasses() {

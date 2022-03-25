@@ -8,6 +8,9 @@ const TS_OFS = 7;
 const RESERVED_OFS = 17;
 
 
+const NREAL_VENDOR_ID = 0x3318;
+
+
 const MESSAGES = {
     W_CANCEL_ACTIVATION: 0x19,
     R_MCU_APP_FW_VERSION: 0x26,//MCU APP FW version.
@@ -174,4 +177,4 @@ function parse_rsp(rsp) {
     return result;
 };
 
-export { MESSAGES, cmd_build, parse_rsp };
+export { NREAL_VENDOR_ID, MESSAGES, cmd_build, parse_rsp };
