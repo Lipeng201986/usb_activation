@@ -8,10 +8,10 @@ const TS_OFS = 7;
 const RESERVED_OFS = 17;
 
 
-const NREAL_VENDOR_ID = 0x3318;
+export const NREAL_VENDOR_ID = 0x3318;
 
 
-const MESSAGES = {
+export const MESSAGES = {
     W_CANCEL_ACTIVATION: 0x19,
     R_MCU_APP_FW_VERSION: 0x26,//MCU APP FW version.
     R_ACTIVATION_TIME: 0x29,//Read activation time
@@ -113,7 +113,7 @@ function cmd_crc(buf, len) {
     return ~CRC32_data;
 };
 
-function cmd_build(msgId, payload) {
+export function cmd_build(msgId, payload) {
     let crc = 0;
     let buff = new Uint8Array(64);
     buff[0] = HEAD;
@@ -152,7 +152,7 @@ function get_status_byte(response) {
 };
 
 
-function parse_rsp(rsp) {
+export function parse_rsp(rsp) {
     let result = {
         msgId: -1,
         status: 0,
@@ -177,4 +177,11 @@ function parse_rsp(rsp) {
     return result;
 };
 
-export { NREAL_VENDOR_ID, MESSAGES, cmd_build, parse_rsp };
+
+export function bytes2Time(bytes) {
+    let time = 0;
+    for (let i = bytes.byteLength - 1; i >= 0; i--) {
+        time += bytes[i] << (i * 8);
+    }
+    return time;
+};

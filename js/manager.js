@@ -1,22 +1,23 @@
 
 import Glasses from '/js/glasses.js';
+import * as Protocol from './protocol.js';
 
 // let devices = [];
 const DEBUG = true;
-let glasses = null;
+let curGlasses = null;
 
 /** check browser whether hid support */
-function hidSupported() {
+export function hidSupported() {
     return !(navigator.hid === undefined);
 }
-function addHidListener() {
+export function addHidListener() {
     navigator.hid.onconnect = function (event) {
         let device = event.device;
         if (isNrealDevice(device)) {
             canCommand(device).then(result => {
                 if (result) {
-                    glasses = new Glasses(device);
-                    if (DEBUG) console.log('glasses connected', glasses);
+                    curGlasses = new Glasses(device);
+                    if (DEBUG) console.log('glasses connected', curGlasses);
                 }
             });
         }
@@ -24,9 +25,9 @@ function addHidListener() {
 
     navigator.hid.ondisconnect = function (event) {
 
-        if (glasses && glasses.device == event.device) {
-            if (DEBUG) console.log('glasses disconnected', glasses);
-            glasses = null;
+        if (curGlasses && curGlasses.device == event.device) {
+            if (DEBUG) console.log('glasses disconnected', curGlasses);
+            curGlasses = null;
         }
     }
 
@@ -46,16 +47,32 @@ function canCommand(device) {
 
 
 function checkConnection() {
+    if (curGlasses) {
+        return curGlasses;
+    }
+
     return navigator.hid.getDevices().then(devices => {
         // filters out devices that are nreal devices.
         return devices.filter(isNrealDevice);
     }).then(async devices => {
         for (let device of devices) {
             if (await canCommand(device)) {
-                glasses = new Glasses(device);
-                if (DEBUG) console.log('glasses found', glasses);
-                return glasses;
+                curGlasses = new Glasses(device);
+                if (DEBUG) console.log('glasses found', curGlasses);
+                return curGlasses;
             }
+        }
+    });
+}
+
+function requestDevice() {
+    return navigator.hid.requestDevice({
+        filters: [{ vendorId: Protocol.NREAL_VENDOR_ID }]
+    }).then(async device => {
+        if (await canCommand(device)) {
+            curGlasses = new Glasses(device);
+            if (DEBUG) console.log('glasses requests', curGlasses);
+            return curGlasses;
         }
     });
 }
@@ -66,7 +83,8 @@ function isNrealDevice(device) {
 }
 
 function getGlasses() {
-    return glasses;
+    return curGlasses;
 }
 
-export { hidSupported, addHidListener, checkConnection, getGlasses };
+
+

@@ -1,5 +1,6 @@
 import * as Protocol from './protocol.js';
 
+
 export default class Glasses extends EventTarget {
     constructor(device) {
         super();
@@ -46,7 +47,56 @@ export default class Glasses extends EventTarget {
     }
 
     async isMcu() {
-        const report = await this.sendReportTimeout(Protocol.MESSAGES.R_ACTIVATION_TIME, [], 1000);
+        const report = await this.sendReportTimeout(Protocol.MESSAGES.R_ACTIVATION_TIME);
         return report != null;
     }
+
+    /** activate the glasses */
+    async activate() {
+        return this.sendReportTimeout(Protocol.MESSAGES.R_ACTIVATION_TIME)
+            .then(report => {
+                console.log('Activation time:', report.payload);
+
+                if (report && report.status === 0 && report.payload.length > 0) {
+                    let time = Protocol.bytes2Time(report.payload);
+                    return time > 0;
+                }
+                else {
+                    return false;
+                }
+            })
+            .then(activated => {
+                console.log('has activated:', activated);
+                if (activated) {
+                    return true;
+                }
+                // hardcode value = 300
+                const time = new Uint8Array([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x01]);
+                return this.sendReportTimeout(Protocol.MESSAGES.W_ACTIVATION_TIME, time)
+                    .then(report => {
+                        return report && report.status === 0;
+                    });
+            });
+    }
+
+    /** deactivate the glasses */
+    async deactivate() {
+        return this.sendReportTimeout(Protocol.MESSAGES.W_CANCEL_ACTIVATION)
+            .then(report => {
+                return report && report.status === 0;
+            });
+    }
+
+    /** read firmware version*/
+    async getFirmwareVersion() {
+        return this.sendReportTimeout(Protocol.MESSAGES.R_MCU_APP_FW_VERSION)
+            .then(report => {
+                if (report && report.status === 0) {
+                    return String.fromCharCode.apply(null, report.payload);
+                }
+            });
+    }
+
+
+
 }

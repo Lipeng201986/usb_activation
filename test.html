@@ -10,7 +10,10 @@
 <body>
 
     <label>test</label><br>
-    <button id='test'>test</button><br>
+    <button id='connect'>connect</button>
+    <button id='activate'>Activate glasses</button>
+    <button id='deactivate'>Deactivate glasses</button>
+    <button id='firmware'>firmware</button>
     <br>
 
 
@@ -26,15 +29,59 @@
             { 'vendorId': 0x3318 },
         ];
         window.onload = async () => {
-            document.getElementById('test').onclick = Manager.checkConnection;
+
+
             if (!Manager.hidSupported()) {
                 return;
             }
+            Manager.checkConnection();
             Manager.addHidListener();
-            let glasses = Manager.getGlasses();
-            if (glasses) {
-                console.log('get connected glasses', glasses);
+            document.getElementById('connect').onclick = connectDevice;
+            document.getElementById('activate').onclick = activate;
+            document.getElementById('deactivate').onclick = deactivate;
+            document.getElementById('firmware').onclick = firmware;
+        }
+
+
+
+        function firmware() {
+            connectDevice().then((glasses) => {
+                if (glasses) {
+                    glasses.getFirmwareVersion().then((version) => {
+                        setOutput('firmware : ' + version);
+                    });
+                }
+            });
+        }
+        function deactivate() {
+            connectDevice().then((glasses) => {
+                if (glasses) {
+                    glasses.deactivate().then((result) => {
+                        setOutput('deactivate ' + result);
+                    });
+                }
+            });
+        }
+        function activate() {
+            connectDevice().then((glasses) => {
+                if (glasses) {
+                    glasses.activate().then((result) => {
+                        setOutput('activate ' + result);
+                    });
+                }
+            });
+        }
+
+        async function connectDevice() {
+            let glasses = await Manager.checkConnection();
+            if (glasses == undefined) {
+                glasses = await Manager.requestDevice();
             }
+            return glasses;
+        }
+
+        function setOutput(output) {
+            document.getElementById('output').value = output;
         }
     </script>
 
