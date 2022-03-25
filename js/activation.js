@@ -1,6 +1,3 @@
-import { send } from "express/lib/response";
-
-
 
 let deviceMap = new Map();
 let deviceIndex = 0;
@@ -321,7 +318,7 @@ const upgrade = async () => {
 
 
 
-const test = () => {
+const test = async () => {
     var fwData = await readFwFile();
     var data = new Uint8Array(fwData);
     console.log(bytes2String(data));
