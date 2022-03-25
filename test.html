@@ -9,37 +9,34 @@
 
 <body>
 
-    <script>
-        function bytes2Time(bytes) {
 
-            let time = 0;
-            for (let i = bytes.byteLength - 1; i >= 0; i--) {
-                time += bytes[i] << (i * 8);
+    <button id='test'>test</button>
+
+    <script type="module">
+
+        import Glasses from "/js/glasses.js"
+        import { cmd_build } from '/js/protocol.js'
+        import { hidSupported, addHidListener, checkConnection, getGlasses } from '/js/util.js';
+
+
+        const hidFilters = [
+            { 'vendorId': 0x3318 },
+        ];
+        window.onload = async () => {
+
+            document.getElementById('test').onclick = checkConnection;
+            if (!hidSupported()) {
+                return;
             }
-            return time;
-        };
+            addHidListener();
 
-        function time2Bytes(time) {
-            let timeBytes = new Uint8Array(8);
-            for (let i = 0; i < 8; i++) {
-
-                console.log('byte % d, value % d', i, (time >> i));
-                timeBytes[i] = (time >> i) & 0x000000FF;
+            let glasses = getGlasses();
+            if (glasses) {
+                console.log('get connected glasses', glasses);
             }
-            return timeBytes;
-        };
 
-
-        function time2Bytes2(number) {
-            var buffer = new ArrayBuffer(8);         // JS numbers are 8 bytes long, or 64 bits
-            var longNum = new Float64Array(buffer);  // so equivalent to Float64
-
-            longNum[0] = number;
-            return Array.from(new Int8Array(buffer));  // reverse to get little endian
         }
 
-        console.log(time2Bytes(new Number(300)));
-        console.log(time2Bytes2(new Number(300)));
     </script>
 
 
