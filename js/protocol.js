@@ -9,6 +9,7 @@ const RESERVED_OFS = 17;
 
 
 export const NREAL_VENDOR_ID = 0x3318;
+export const BOOT_PRODUCT_ID = 0x0423;
 
 
 export const MESSAGES = {
@@ -173,7 +174,6 @@ export function parse_rsp(rsp) {
     }
     packet_len = packet_len - 17 - 1;/* len, ts, msgid, reserve, status*/
     result.payload = rsp.slice(PAYLOAD_OFS + 1, PAYLOAD_OFS + 1 + packet_len);
-
     return result;
 };
 
@@ -185,3 +185,15 @@ export function bytes2Time(bytes) {
     }
     return time;
 };
+
+
+// Formats an 8-bit integer |value| in hexadecimal with leading zeros.
+export function hex8(value) {
+    return ('0x' + value.toString(16)).substring(-2).toUpperCase();
+};
+export function bytes2String(buffer) {
+    let bufferString = '';
+    for (let byte of buffer)
+        bufferString += ' ' + hex8(byte);
+    return bufferString;
+}

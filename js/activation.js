@@ -320,8 +320,6 @@ async function selectFile() {
     }
 
     return null;
-
-
 }
 
 function forgetAll() {

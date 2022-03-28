@@ -28,16 +28,18 @@ export default class Glasses extends EventTarget {
 
     sendReport(msgId, payload) {
         const data = new Uint8Array(payload);
-        const cmd = Protocol.cmd_build(msgId, payload);
+        const cmd = Protocol.cmd_build(msgId, data);
         this._device.sendReport(0x00, cmd);
     }
 
-    async sendReportTimeout(msgId, payload = [], timeout = 200) {
+    async sendReportTimeout(msgId, payload = [], timeout = 1000) {
         this.sendReport(msgId, payload);
         const time = new Date().getTime();
+        // console.log('sendReportTimeout', Protocol.hex8(msgId), payload);
         while ((new Date().getTime() - time) < timeout) {
             if (this._reports.has(msgId)) {
                 let report = this._reports.get(msgId);
+                // console.log('sendReportTimeout recv', report);
                 this._reports.delete(msgId);
                 return report;
             }
@@ -51,52 +53,8 @@ export default class Glasses extends EventTarget {
         return report != null;
     }
 
-    /** activate the glasses */
-    async activate() {
-        return this.sendReportTimeout(Protocol.MESSAGES.R_ACTIVATION_TIME)
-            .then(report => {
-                console.log('Activation time:', report.payload);
 
-                if (report && report.status === 0 && report.payload.length > 0) {
-                    let time = Protocol.bytes2Time(report.payload);
-                    return time > 0;
-                }
-                else {
-                    return false;
-                }
-            })
-            .then(activated => {
-                console.log('has activated:', activated);
-                if (activated) {
-                    return true;
-                }
-                // hardcode value = 300
-                const time = new Uint8Array([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x01]);
-                return this.sendReportTimeout(Protocol.MESSAGES.W_ACTIVATION_TIME, time)
-                    .then(report => {
-                        return report && report.status === 0;
-                    });
-            });
+    toString() {
+        return `<Glasses deviceName=${this._device.productName} vid=${this._device.vendorId} pid=${this._device.vendorId}>`;
     }
-
-    /** deactivate the glasses */
-    async deactivate() {
-        return this.sendReportTimeout(Protocol.MESSAGES.W_CANCEL_ACTIVATION)
-            .then(report => {
-                return report && report.status === 0;
-            });
-    }
-
-    /** read firmware version*/
-    async getFirmwareVersion() {
-        return this.sendReportTimeout(Protocol.MESSAGES.R_MCU_APP_FW_VERSION)
-            .then(report => {
-                if (report && report.status === 0) {
-                    return String.fromCharCode.apply(null, report.payload);
-                }
-            });
-    }
-
-
-
 }
