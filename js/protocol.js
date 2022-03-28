@@ -1,3 +1,4 @@
+
 const HEAD = 0xfd;
 const MSG_ID_OFS = 15;
 const PAYLOAD_OFS = 22;
@@ -7,9 +8,22 @@ const TS_OFS = 7;
 const RESERVED_OFS = 17;
 
 
+export const NREAL_VENDOR_ID = 0x3318;
+export const BOOT_PRODUCT_ID = 0x0423;
+
+
 export const MESSAGES = {
-    R_ACTIVATION_TIME: 0x29,
-    W_ACTIVATION_TIME: 0x2A,
+    W_CANCEL_ACTIVATION: 0x19,
+    R_MCU_APP_FW_VERSION: 0x26,//MCU APP FW version.
+    R_ACTIVATION_TIME: 0x29,//Read activation time
+    W_ACTIVATION_TIME: 0x2A,//Write activation time
+
+    W_UPDATE_MCU_APP_FW_PREPARE: 0x3E,//Preparations for mcu app fw upgrade
+    W_UPDATE_MCU_APP_FW_START: 0x3F,	//(Implemented in Boot)
+    W_UPDATE_MCU_APP_FW_TRANSMIT: 0x40,	//(Implemented in Boot)
+    W_UPDATE_MCU_APP_FW_FINISH: 0x41,	//(Implemented in Boot)
+    W_BOOT_JUMP_TO_APP: 0x42,	//(Implemented in Boot)
+    W_MCU_APP_JUMP_TO_BOOT: 0x44,
 
     W_BOOT_UPDATE_MODE: 0x1100,
     W_BOOT_UPDATE_CONFIRM: 0x1101,
@@ -18,10 +32,9 @@ export const MESSAGES = {
     W_BOOT_UPDATE_START: 0x1103,
     W_BOOT_UPDATE_TRANSMIT: 0x1104,
     W_BOOT_UPDATE_FINISH: 0x1105,
-}
+};
 
 
-const MSG_R_ACTIVATION_TIME = 0x29;
 
 const crc32_table = [
     0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
@@ -91,52 +104,96 @@ const crc32_table = [
 ];
 
 
-export function cmd_crc(buf, len) {
-    var crc = 0xffffffff;
-    for (var i = 0; i < len; i++) {
-        crc = ((crc >> 8) & 0xFFFFFF) ^ crc32_table[(crc ^ buf[i]) & 0xff];
+function cmd_crc(buf, len) {
+    let CRC32_data = 0xFFFFFFFF;
+    for (let i = 0; i != len; ++i) {
+        let t = (CRC32_data ^ buf[i]) & 0xFF;
+        CRC32_data = ((CRC32_data >> 8) & 0xFFFFFF) ^ crc32_table[t];
     }
-    return crc ^ 0xffffffff;
-}
+
+    return ~CRC32_data;
+};
 
 export function cmd_build(msgId, payload) {
-    var crc = 0;
-    var buff = new Uint8Array(64);
+    let crc = 0;
+    let buff = new Uint8Array(64);
     buff[0] = HEAD;
+
     // memset(buff + TS_OFS, 0, 8);
     // memset(buff + RESERVED_OFS, 0, 5);
 
     buff[MSG_ID_OFS] = (msgId >> 0) & 0xff;
     buff[MSG_ID_OFS + 1] = (msgId >> 8) & 0xff;
 
-    var len = /*LEN*/2 + /*TS*/8 + /*MSG_ID*/2 + /*RESERVED*/5;
+    let len = /*LEN*/2 + /*TS*/8 + /*MSG_ID*/2 + /*RESERVED*/5;
 
-    if (payload.length > 0) {
+    if (payload != null && payload.length > 0) {
         buff.set(payload, PAYLOAD_OFS);
         len += payload.length;
     }
-
     buff[LEN_OFS] = (len) & 0xff;
     buff[LEN_OFS + 1] = (len >> 8) & 0xff;
 
-    crc = cmd_crc(buff + LEN_OFS, len);
+    crc = cmd_crc(buff.slice(LEN_OFS), len);
     buff[CRC_OFS] = (crc >> 0) & 0xff;
     buff[CRC_OFS + 1] = (crc >> 8) & 0xff;
     buff[CRC_OFS + 2] = (crc >> 16) & 0xff;
     buff[CRC_OFS + 3] = (crc >> 24) & 0xff;
 
-    len = len + /*HEAD*/1 + /*CRC*/4;
+    return buff;
+};
 
-    var cmd = new Uint8Array(len + 1);
-    cmd.set(buff, 1);
-    return cmd;
-}
-
-export function get_msgId(response) {
-    var msgId = (response[15]) | (response[16] << 8);
+function get_msgId(response) {
+    let msgId = (response[15]) | (response[16] << 8);
     return msgId;
-}
+};
 
-export function get_status_byte(response) {
+function get_status_byte(response) {
     return response[22];
+};
+
+
+export function parse_rsp(rsp) {
+    let result = {
+        msgId: -1,
+        status: 0,
+        payload: new Uint8Array()
+    };
+
+    if (rsp == null || rsp.length < 1) {
+        return result;
+    }
+
+    result.msgId = get_msgId(rsp);
+    result.status = get_status_byte(rsp);
+
+
+    let packet_len = (rsp[5]) | (rsp[6] << 8);
+    if (packet_len < 18) {
+        return result;
+    }
+    packet_len = packet_len - 17 - 1;/* len, ts, msgid, reserve, status*/
+    result.payload = rsp.slice(PAYLOAD_OFS + 1, PAYLOAD_OFS + 1 + packet_len);
+    return result;
+};
+
+
+export function bytes2Time(bytes) {
+    let time = 0;
+    for (let i = bytes.byteLength - 1; i >= 0; i--) {
+        time += bytes[i] << (i * 8);
+    }
+    return time;
+};
+
+
+// Formats an 8-bit integer |value| in hexadecimal with leading zeros.
+export function hex8(value) {
+    return ('0x' + value.toString(16)).substring(-2).toUpperCase();
+};
+export function bytes2String(buffer) {
+    let bufferString = '';
+    for (let byte of buffer)
+        bufferString += ' ' + hex8(byte);
+    return bufferString;
 }

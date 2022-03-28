@@ -116,9 +116,12 @@ const sendFeatureReport = () => {
         return;
 
     let data = parseHexArray(reportTextArea.value);
+
+    console.log('data', data);
     reportTextArea.value = hexview(data);
 
     let reportId = data.getUint8(0);
+    console.log('reportId', reportId);
     let reportData = new Uint8Array(data.buffer).slice(1);
 
     selectedDevice.sendFeatureReport(reportId, reportData);
