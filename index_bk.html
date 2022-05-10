@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Nreal Activation</title>
+
+    <script type="module" src="js/activation.js">
+    </script>
+
+</head>
+
+<body>
+
+
+    <div id="main">
+        <h1>Nreal glasses activation</h1>
+        <button id='connect'>connect</button>
+        <button id='activate'>Activate glasses</button>
+        <button id='deactivate'>Deactivate glasses</button>
+        <button id='test'">test</button>
+        <div id=" result">result
+    </div>
+
+
+    <h1>OTA</h1>
+    <button id='upgrade' onclick="upgrade()">upgrade</button>
+
+    </div>
+
+    <script type="module">
+        import { connectDevices, tryToActive, deactivate, test } from '/js/activation.js'
+        window.onload = function () {
+            let clickFuncMap = new Map(
+                [
+                    ['connect', connectDevices],
+                    ['activate', tryToActive],
+                    ['deactivate', deactivate],
+                    ['test', test]
+                ]
+            );
+
+            for (let [id, func] of clickFuncMap.entries()) {
+                document.getElementById(id).onclick = func;
+            }
+        }
+
+    </script>
+
+</body>
+
+</html>

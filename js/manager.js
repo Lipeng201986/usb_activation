@@ -1,5 +1,5 @@
 
-import Glasses from '/js/glasses.js';
+import Glasses from './glasses.js';
 import * as Protocol from './protocol.js';
 
 // let devices = [];

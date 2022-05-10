@@ -3,49 +3,123 @@
 
 <head>
     <meta charset="utf-8">
-    <title>Nreal Activation</title>
+    <title>Nreal HID Test</title>
 
-    <script type="module" src="js/activation.js">
-    </script>
-
+    <script type="module" src="./js/glasses.js"></script>
+    <script type="module" src="./js/manager.js"></script>
 </head>
 
 <body>
 
-
-    <div id="main">
-        <h1>Nreal glasses activation</h1>
-        <button id='connect'>connect</button>
-        <button id='activate'>Activate glasses</button>
-        <button id='deactivate'>Deactivate glasses</button>
-        <button id='test'">test</button>
-        <div id=" result">result
-    </div>
-
+    <h1>Command</h1>
+    <button id='connect'>connect</button>
+    <button id='activate'>Activate glasses</button>
+    <button id='deactivate'>Deactivate glasses</button>
+    <button id='firmware'>firmware</button><br>
+    <br>
+    <label>output:</label><br>
+    <textarea id="output" cols="100" rows="5" disabled></textarea>
 
     <h1>OTA</h1>
-    <button id='upgrade' onclick="upgrade()">upgrade</button>
-
-    </div>
+    <button id="selectbin">select</button><br>
+    <textarea id="binfile" cols="100" rows="1" disabled></textarea><br>
+    <button id='upgrade'>upgrade</button>
 
     <script type="module">
-        import { connectDevices, tryToActive, deactivate, test } from '/js/activation.js'
-        window.onload = function () {
-            let clickFuncMap = new Map(
-                [
-                    ['connect', connectDevices],
-                    ['activate', tryToActive],
-                    ['deactivate', deactivate],
-                    ['test', test]
-                ]
-            );
+        import Glasses from "./js/glasses.js"
+        import * as Manager from './js/manager.js';
 
-            for (let [id, func] of clickFuncMap.entries()) {
-                document.getElementById(id).onclick = func;
+        const hidFilters = [
+            { 'vendorId': 0x3318 },
+        ];
+
+        let binFile = null;
+
+
+        async function upgrade() {
+            if (binFile == null) {
+                binFile = await selectbin();
             }
+            if (binFile == null) {
+                return;
+            }
+            let version = await Manager.getFirmwareVersion();
+            if (version == null) {
+                alert("Please connect glasses first!");
+                return;
+            }
+            if (binFile.name.includes(version)) {
+                alert("Already the latest version!");
+                return;
+            }
+            let data = await binFile.arrayBuffer();
+            console.log('data', data);
+
+            let result = await Manager.upgrade(await binFile.arrayBuffer());
+            setOutput('upgrade result: ' + result);
+
         }
 
+        function selectbin() {
+            return Manager.selectBinFile().then(file => {
+                binFile = file;
+                document.getElementById('binfile').value = file.name;
+
+                return binFile;
+            });
+        }
+
+        function connect() {
+            Manager.connectDevice().then(glasses => {
+                setOutput('glasses : ' + glasses.toString());
+            });
+        }
+
+        function firmware() {
+            Manager.getFirmwareVersion().then(version => {
+                setOutput('firmware : ' + version);
+            });
+        }
+
+        function serial() {
+            Manager.getSerialNo().then(version => {
+                setOutput('serial no: ' + version);
+            });
+        }
+
+        function deactivate() {
+            Manager.deactivate().then(result => {
+                setOutput('deactivate ' + result);
+            });
+        }
+
+        function activate() {
+            Manager.activate().then(result => {
+                setOutput('activate ' + result);
+            });
+        }
+
+        function setOutput(output) {
+            document.getElementById('output').value = output;
+        }
+
+
+        window.onload = async () => {
+            if (!Manager.hidSupported()) {
+                return;
+            }
+            Manager.checkConnection();
+            Manager.addHidListener();
+            document.getElementById('connect').onclick = connect;
+            document.getElementById('activate').onclick = activate;
+            document.getElementById('deactivate').onclick = deactivate;
+            document.getElementById('firmware').onclick = firmware;
+            // document.getElementById('serial').onclick = serial;
+            document.getElementById('selectbin').onclick = selectbin;
+            document.getElementById('upgrade').onclick = upgrade;
+        }
     </script>
+
 
 </body>
 
