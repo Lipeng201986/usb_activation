@@ -1,3 +1,4 @@
+
 import * as Protocol from './protocol.js';
 
 let deviceMap = new Map();
@@ -291,7 +292,6 @@ async function upgrade() {
         }
     });
 
-}
 
 async function selectFile() {
     const pickerOpts = {
