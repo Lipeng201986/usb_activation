@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <title>Nreal HID Test</title>
+
+</head>
+
+<body>
+
+    <label>test</label><br>
+    <button id='test'>test</button><br>
+    <br>
+
+
+    <label>output</label><br>
+    <textarea id="output" cols="100" rows="5"></textarea>
+    <script type="module">
+
+        import Glasses from "/js/glasses.js"
+        import * as Manager from '/js/manager.js';
+
+
+        const hidFilters = [
+            { 'vendorId': 0x3318 },
+        ];
+        window.onload = async () => {
+            document.getElementById('test').onclick = Manager.checkConnection;
+            if (!Manager.hidSupported()) {
+                return;
+            }
+            Manager.addHidListener();
+            let glasses = Manager.getGlasses();
+            if (glasses) {
+                console.log('get connected glasses', glasses);
+            }
+        }
+    </script>
+
+
+</body>
+
+</html>
