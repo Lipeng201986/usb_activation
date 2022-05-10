@@ -24,8 +24,8 @@
     <button id='upgrade'>upgrade</button>
 
     <script type="module">
-        import Glasses from "/js/glasses.js"
-        import * as Manager from '/js/manager.js';
+        import Glasses from "./js/glasses.js"
+        import * as Manager from './js/manager.js';
 
         const hidFilters = [
             { 'vendorId': 0x3318 },
@@ -79,6 +79,12 @@
             });
         }
 
+        function serial() {
+            Manager.getSerialNo().then(version => {
+                setOutput('serial no: ' + version);
+            });
+        }
+
         function deactivate() {
             Manager.deactivate().then(result => {
                 setOutput('deactivate ' + result);
@@ -106,6 +112,7 @@
             document.getElementById('activate').onclick = activate;
             document.getElementById('deactivate').onclick = deactivate;
             document.getElementById('firmware').onclick = firmware;
+            // document.getElementById('serial').onclick = serial;
             document.getElementById('selectbin').onclick = selectbin;
             document.getElementById('upgrade').onclick = upgrade;
         }
